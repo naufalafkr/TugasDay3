@@ -1,8 +1,15 @@
 import streamlit as st
-import pandas as pd
-import plotly.express as px
-import numpy as np
+import streamlit.components.v1 as components
 
+# 1. Atur konfigurasi halaman Streamlit agar melebar (Wide Mode)
+st.set_page_config(
+    page_title="Dashboard Krisis Air Bersih",
+    layout="wide",
+    initial_sidebar_state="collapsed" # Menyembunyikan sidebar asli Streamlit agar fokus ke sidebar HTML
+)
+
+# 2. Bungkus seluruh kode HTML + Javascript Anda ke dalam variabel string Python (triple quotes)
+html_dashboard = """
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -16,7 +23,7 @@ import numpy as np
 
     <header class="bg-gray-800 border-b border-gray-700 shadow-md p-4 flex flex-col md:flex-row justify-between items-center gap-4">
         <div class="flex items-center gap-3">
-            <div class="bg-blue-600 text-white p-2 rounded-lg font-bold text-xl shadow"> </div>
+            <div class="bg-blue-600 text-white p-2 rounded-lg font-bold text-xl shadow">🚰</div>
             <div>
                 <h1 class="text-xl md:text-2xl font-extrabold text-white tracking-wide">DASHBOARD NASIONAL</h1>
                 <p class="text-xs text-blue-400 font-medium">Pemantauan Krisis Kualitas Air Bersih & Alokasi Intervensi Logistik</p>
@@ -154,8 +161,6 @@ import numpy as np
     </div>
 
     <script>
-        // 1. DATASET UTAMA MENTAH (Simulasi Representatif 20-Data sampel dari total populasi 550.242 baris)
-        // Catatan: Teks kurung kode seperti (04) sudah bersih sesuai instruksi ETL sebelumnya.
         const rawDataset = [
             { State: "ANDHRA PRADESH", District: "EAST GODAVARI", Block: "PRATHIPADU", Panchayat: "GOKAVARAM", Village: "VANTHADA", Habitation: "VANTHADA-A", Parameter: "Salinity", Year: 2009 },
             { State: "ANDHRA PRADESH", District: "EAST GODAVARI", Block: "PRATHIPADU", Panchayat: "GOKAVARAM", Village: "PANDAVULAPALEM", Habitation: "PANDAVULAPALEM-B", Parameter: "Fluoride", Year: 2009 },
@@ -179,10 +184,8 @@ import numpy as np
             { State: "ORISSA", District: "BALASORE", Block: "BHOGRAI", Panchayat: "COASTAL", Village: "TALAPADA", Habitation: "TALAPADA BEACH", Parameter: "Salinity", Year: 2011 }
         ];
 
-        // Global Referensi Chart Instance agar bisa di-destroy & re-render dengan mulus
         let lineChart, donutChart, barChart;
 
-        // Inisialisasi Elemen DOM DOM
         const filterYear = document.getElementById('filter-year');
         const filterState = document.getElementById('filter-state');
         const filterParameter = document.getElementById('filter-parameter');
@@ -193,15 +196,11 @@ import numpy as np
         const kpiDominant = document.getElementById('kpi-dominant');
         const kpiDistricts = document.getElementById('kpi-districts');
 
-        // =====================================================================
-        // CORE ENGINE: RE-RENDER & FILTER DATA
-        // =====================================================================
         function updateDashboard() {
             const yr = filterYear.value;
             const st = filterState.value;
             const pm = filterParameter.value;
 
-            // Operasi Filtering Slicer
             const filteredData = rawDataset.filter(d => {
                 const matchYear = (yr === 'All' || d.Year.toString() === yr);
                 const matchState = (st === 'All' || d.State === st);
@@ -209,14 +208,10 @@ import numpy as np
                 return matchYear && matchState && matchParam;
             });
 
-            // 1. HITUNG & UPDATE METRIK CARD KPI
             kpiTotal.innerText = filteredData.length.toLocaleString('id-ID');
-            
-            // Hitung Kabupaten Unik (Distinct Count)
             const uniqueDistricts = [...new Set(filteredData.map(d => d.District))].length;
             kpiDistricts.innerText = uniqueDistricts.toLocaleString('id-ID');
 
-            // Hitung Modus/Zat Dominan
             if(filteredData.length > 0) {
                 const freqMap = {};
                 filteredData.forEach(d => freqMap[d.Parameter] = (freqMap[d.Parameter] || 0) + 1);
@@ -226,30 +221,22 @@ import numpy as np
                 kpiDominant.innerText = "N/A";
             }
 
-            // 2. BUILD VISUAL 1: TREN LINE CHART (Agregasi Kasus Per Tahun)
             const yearsList = [2009, 2010, 2011, 2012];
             const lineDataPoints = yearsList.map(y => {
-                // Tren sengaja tidak dikunci total oleh filter tahun agar chart garisnya tetap terbentuk linier
-                return rawDataset.filter(d => d.Year === y && 
-                    (st === 'All' || d.State === st) && 
-                    (pm === 'All' || d.Parameter === pm)
-                ).length;
+                return rawDataset.filter(d => d.Year === y && (st === 'All' || d.State === st) && (pm === 'All' || d.Parameter === pm)).length;
             });
             renderLineChart(yearsList, lineDataPoints);
 
-            // 3. BUILD VISUAL 2: PROPORSI DONUT CHART
             const donutMap = {};
             filteredData.forEach(d => donutMap[d.Parameter] = (donutMap[d.Parameter] || 0) + 1);
             renderDonutChart(Object.keys(donutMap), Object.values(donutMap));
 
-            // 4. BUILD VISUAL 3: RANKING BAR CHART (Berdasarkan Wilayah State)
             const barMap = {};
             filteredData.forEach(d => barMap[d.State] = (barMap[d.State] || 0) + 1);
             const sortedBarStates = Object.keys(barMap).sort((a,b) => barMap[b] - barMap[a]);
             const barDataValues = sortedBarStates.map(s => barMap[s]);
             renderBarChart(sortedBarStates, barDataValues);
 
-            // 5. RENDER DATAFRAME / TABEL DETAIL
             tableBody.innerHTML = "";
             tableCount.innerText = `${filteredData.length} baris ditemukan`;
             
@@ -266,14 +253,13 @@ import numpy as np
                         <td class="p-4 text-gray-400">${d.Panchayat}</td>
                         <td class="p-4 text-gray-400">${d.Village}</td>
                         <td class="p-4 text-gray-400 font-mono text-xs">${d.Habitation}</td>
-                        <td class="p-4"><span class="px-2 py-1 rounded text-xs font-bold ${getBadgeColor(d.Parameter)}">${d.Parameter}</span></td>
+                        <td class="p-4"><span class="px-2 py-1 rounded text-xs font-bold \${getBadgeColor(d.Parameter)}">\${d.Parameter}</span></td>
                     `;
                     tableBody.appendChild(row);
                 });
             }
         }
 
-        // Helper Pewarnaan Badge Kualitas Air yang Kontras
         function getBadgeColor(param) {
             switch(param) {
                 case 'Iron': return 'bg-red-900 text-red-200 border border-red-700';
@@ -284,9 +270,6 @@ import numpy as np
             }
         }
 
-        // =====================================================================
-        // RE-RENDER CHART FUNCTIONS (CHART.JS CONFIGS)
-        // =====================================================================
         function renderLineChart(labels, dataPoints) {
             if (lineChart) lineChart.destroy();
             const ctx = document.getElementById('chartLine').getContext('2d');
@@ -364,9 +347,6 @@ import numpy as np
             });
         }
 
-        // =====================================================================
-        // EVENT LISTENERS & INITIALIZATION
-        // =====================================================================
         filterYear.addEventListener('change', updateDashboard);
         filterState.addEventListener('change', updateDashboard);
         filterParameter.addEventListener('change', updateDashboard);
@@ -378,8 +358,12 @@ import numpy as np
             updateDashboard();
         });
 
-        // Jalankan render dashboard pertama kali saat halaman terbuka
         window.addEventListener('DOMContentLoaded', updateDashboard);
     </script>
 </body>
 </html>
+"""
+
+# 3. Render HTML tersebut ke dalam aplikasi Streamlit Anda secara aman
+# Tinggi (height) diatur ke 1500 agar halaman muat kebawah tanpa terpotong
+components.html(html_dashboard, height=1500, scrolling=True)
