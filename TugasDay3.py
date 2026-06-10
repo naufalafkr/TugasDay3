@@ -16,7 +16,7 @@ import numpy as np
 
     <header class="bg-gray-800 border-b border-gray-700 shadow-md p-4 flex flex-col md:flex-row justify-between items-center gap-4">
         <div class="flex items-center gap-3">
-            <div class="bg-blue-600 text-white p-2 rounded-lg font-bold text-xl shadow">🚰</div>
+            <div class="bg-blue-600 text-white p-2 rounded-lg font-bold text-xl shadow"> </div>
             <div>
                 <h1 class="text-xl md:text-2xl font-extrabold text-white tracking-wide">DASHBOARD NASIONAL</h1>
                 <p class="text-xs text-blue-400 font-medium">Pemantauan Krisis Kualitas Air Bersih & Alokasi Intervensi Logistik</p>
